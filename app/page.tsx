@@ -30,6 +30,9 @@ export default function Home() {
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [availableTags, setAvailableTags] = useState<any[]>([]);
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
+  const [isCategoryExpanded, setIsCategoryExpanded] = useState(false);
+  const [isSubcategoryExpanded, setIsSubcategoryExpanded] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
   // Update dropdown position when hoveredCategory changes or on scroll
   const updateDropdownPosition = (categoryId: number | null) => {
@@ -67,7 +70,7 @@ export default function Home() {
     };
   }, [hoveredCategory]);
 
-  // Fetch profiles whenever filters change
+  // Fetch profiles whenever filters or search query change
   useEffect(() => {
     const fetchProfiles = async () => {
       setLoading(true);
@@ -76,6 +79,11 @@ export default function Home() {
           limit: 200,
           status: 'published'
         };
+
+        // Add search parameter
+        if (searchQuery.trim()) {
+          params.search = searchQuery.trim();
+        }
 
         // Add filter parameters
         if (selectedCategoryId) {
@@ -106,7 +114,7 @@ export default function Home() {
           let profilesList = profilesData.data;
 
           // When no category filter is selected, only show allowed categories
-          if (!selectedCategoryId) {
+          if (!selectedCategoryId && !searchQuery.trim()) {
             profilesList = profilesList.filter((profile: any) =>
               allowedCategories.includes(profile.category_name)
             );
@@ -114,12 +122,13 @@ export default function Home() {
 
           // When no filters are applied, randomize the list
           if (!selectedCategoryId && !selectedSubcategoryId && selectedTagIds.length === 0 &&
-              selectedCountries.length === 0 && selectedLanguages.length === 0 && selectedPlatforms.length === 0) {
+              selectedCountries.length === 0 && selectedLanguages.length === 0 && selectedPlatforms.length === 0 && !searchQuery.trim()) {
             profilesList = [...profilesList].sort(() => Math.random() - 0.5);
           }
 
           setProfiles(profilesList);
           setFilteredProfiles(profilesList);
+          setSearchResults(profilesList);
         }
       } catch (error) {
         console.error('Error fetching profiles:', error);
@@ -128,8 +137,13 @@ export default function Home() {
       }
     };
 
-    fetchProfiles();
-  }, [selectedCategoryId, selectedSubcategoryId, selectedTagIds, selectedCountries, selectedLanguages, selectedPlatforms]);
+    // Debounce search API calls
+    const timer = setTimeout(() => {
+      fetchProfiles();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [selectedCategoryId, selectedSubcategoryId, selectedTagIds, selectedCountries, selectedLanguages, selectedPlatforms, searchQuery]);
 
   // Fetch categories and filter options on mount
   useEffect(() => {
@@ -195,6 +209,14 @@ export default function Home() {
       setSelectedCategoryId(categoryId);
       setSelectedSubcategoryId(null);
       setSelectedTagIds([]);
+
+      // Scroll selected category into view on mobile
+      setTimeout(() => {
+        const categoryButton = document.getElementById(`mobile-cat-${categoryId}`);
+        if (categoryButton) {
+          categoryButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+      }, 300);
     }
   };
 
@@ -209,6 +231,14 @@ export default function Home() {
       // Select subcategory
       setSelectedSubcategoryId(subcategoryId);
       setSelectedTagIds([]);
+
+      // Scroll selected subcategory into view on mobile (use 'start' to keep category visible)
+      setTimeout(() => {
+        const subcategoryButton = document.getElementById(`mobile-subcat-${subcategoryId}`);
+        if (subcategoryButton) {
+          subcategoryButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+        }
+      }, 300);
 
       // Fetch tags for the selected subcategory (only tags used by profiles in that subcategory)
       try {
@@ -233,28 +263,34 @@ export default function Home() {
   // Get selected category object
   const selectedCategory = categories.find(c => c.id === selectedCategoryId);
 
-  // Search functionality
+  // Update search dropdown visibility when search query changes
   useEffect(() => {
     if (searchQuery.trim()) {
-      setLoading(true);
-      // Simulate search delay
-      const timer = setTimeout(() => {
-        const results = profiles.filter(profile =>
-          profile.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          profile.category_name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        setSearchResults(results);
-        setFilteredProfiles(results);
-        setShowSearchDropdown(true);
-        setLoading(false);
-      }, 500);
-      return () => clearTimeout(timer);
+      setShowSearchDropdown(true);
     } else {
-      setFilteredProfiles(profiles);
       setShowSearchDropdown(false);
-      setSearchResults([]);
     }
-  }, [searchQuery, profiles]);
+  }, [searchQuery]);
+
+  // Handle search state across viewport changes
+  useEffect(() => {
+    const handleResize = () => {
+      const checkbox = document.getElementById('mobile-search-toggle') as HTMLInputElement;
+
+      if (window.innerWidth >= 640) { // Desktop (sm breakpoint and above)
+        // Reset mobile checkbox when switching to desktop
+        if (checkbox) checkbox.checked = false;
+      } else { // Mobile
+        // If there's an active search query or dropdown, keep mobile search open
+        if (checkbox && (searchQuery || showSearchDropdown)) {
+          checkbox.checked = true;
+        }
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [searchQuery, showSearchDropdown]);
 
   return (
     <div className="min-h-screen bg-[#141414] px-[40px] py-[24px]">
@@ -385,34 +421,50 @@ export default function Home() {
             </label>
           </div>
 
-          {/* Search Dropdown - Show for both mobile and desktop */}
+          {/* Search Dropdown - Desktop: dropdown, Mobile: full screen */}
           {showSearchDropdown && searchQuery && (
             <div className="
-              absolute
+              /* Mobile: Full screen */
+              fixed
+              top-[72px]
+              left-0
               right-0
-              top-[48px]
-              w-[304px]
-              bg-[#1b1b1b]
-              border
-              border-[rgba(255,255,255,0.05)]
-              rounded-[8px]
-              overflow-hidden
-              z-50
-              
+              bottom-0
+              bg-[#141414]
+              z-40
+              overflow-y-auto
+              p-[8px]
+              py-[4px]
+
+              /* Desktop: Dropdown */
+              sm:absolute
+              sm:right-0
+              sm:top-[48px]
+              sm:left-auto
+              sm:bottom-auto
+              sm:w-[304px]
+              sm:bg-[#1b1b1b]
+              sm:border
+              sm:border-[rgba(255,255,255,0.05)]
+              sm:rounded-[8px]
+              sm:overflow-hidden
+
               /* Show on desktop always, on mobile only when expanded */
               hidden
               peer-checked:block
               sm:block
             " style={{ boxShadow: '0px 4px 24px rgba(0, 0, 0, 0.4)' }}>
               {searchResults.length > 0 ? (
-                      <div className="flex flex-col gap-[2px] p-[8px] py-[4px]">
-                        {searchResults.slice(0, 5).map((profile, index) => (
+                      <div className="flex flex-col gap-[2px]">
+                        {searchResults.map((profile, index) => (
                           <div
                             key={profile.id}
                             className={`flex items-center gap-[8px] pl-[4px] pr-[8px] py-[4px] rounded-[4px] cursor-pointer transition-colors ${index === 1 ? 'bg-[#252525]' : 'hover:bg-[#252525]'}`}
                             onClick={() => {
                               setSearchQuery(profile.name);
                               setShowSearchDropdown(false);
+                              const checkbox = document.getElementById('mobile-search-toggle') as HTMLInputElement;
+                              if (checkbox) checkbox.checked = false;
                             }}
                           >
                             <div className="w-[32px] h-[32px] rounded-[4px] overflow-hidden flex-shrink-0">
@@ -434,110 +486,282 @@ export default function Home() {
 
       {/* Category Menu + Subcategories + Tags */}
       <div className="flex flex-col gap-[16px] mb-[24px]">
-        {/* Main Categories Row - Carousel */}
-        <div className="relative group">
-          {/* Left Arrow */}
-          <button
-            onClick={() => {
-              const container = document.getElementById('categories-carousel');
-              if (container) {
-                container.scrollBy({ left: -300, behavior: 'smooth' });
-              }
-            }}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-[#1f1f1f] hover:bg-[#2a2a2a] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
+        {/* Desktop: Carousel - Mobile: Expandable Grid */}
+        <div className="relative">
+          {/* Desktop Carousel */}
+          <div className="hidden sm:block relative group">
+            {/* Left Arrow */}
+            <button
+              onClick={() => {
+                const container = document.getElementById('categories-carousel');
+                if (container) {
+                  container.scrollBy({ left: -300, behavior: 'smooth' });
+                }
+              }}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-[#1f1f1f] hover:bg-[#2a2a2a] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
 
-          {/* Categories Container */}
-          <div
-            id="categories-carousel"
-            className="flex gap-[22px] items-center overflow-x-auto scrollbar-hide scroll-smooth"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            {categories.map((category) => (
-              <div
-                key={category.id}
-                className="relative flex-shrink-0 static"
-                onMouseEnter={() => setHoveredCategory(category.id)}
-                onMouseLeave={() => setHoveredCategory(null)}
-              >
-                <button
-                  onClick={() => handleCategoryClick(category.id)}
-                  className={`h-[24px] py-[8px] flex items-center gap-[2px] rounded-[8px] text-[14px] leading-[20px] transition-all whitespace-nowrap ${
-                    selectedCategoryId === category.id
-                      ? 'bg-white text-black font-medium pl-[8px] pr-[4px]'
-                      : hoveredCategory === category.id
-                      ? 'bg-[#1f1f1f] text-white pl-[8px] pr-[4px]'
-                      : 'bg-[#141414] text-white px-[8px]'
-                  }`}
-                  style={{ fontFamily: 'Poppins, sans-serif' }}
+            {/* Categories Container */}
+            <div
+              id="categories-carousel"
+              className="flex gap-[22px] items-center overflow-x-auto scrollbar-hide scroll-smooth"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {categories.map((category) => (
+                <div
+                  key={category.id}
+                  className="relative flex-shrink-0 static"
+                  onMouseEnter={() => setHoveredCategory(category.id)}
+                  onMouseLeave={() => setHoveredCategory(null)}
                 >
-                  {category.name}
-                  {(selectedCategoryId === category.id || hoveredCategory === category.id) && (
-                    <svg className="w-[16px] h-[16px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <button
+                    onClick={() => handleCategoryClick(category.id)}
+                    className={`h-[24px] py-[8px] flex items-center gap-[2px] rounded-[8px] text-[14px] leading-[20px] transition-all whitespace-nowrap ${
+                      selectedCategoryId === category.id
+                        ? 'bg-white text-black font-medium pl-[8px] pr-[4px]'
+                        : hoveredCategory === category.id
+                        ? 'bg-[#1f1f1f] text-white pl-[8px] pr-[4px]'
+                        : 'bg-[#141414] text-white px-[8px]'
+                    }`}
+                    style={{ fontFamily: 'Poppins, sans-serif' }}
+                  >
+                    {category.name}
+                    {(selectedCategoryId === category.id || hoveredCategory === category.id) && (
+                      <svg className="w-[16px] h-[16px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    )}
+                  </button>
+
+                  {/* Dropdown - Using fixed positioning portal-style */}
+                  {hoveredCategory === category.id && selectedCategoryId !== category.id && category.subcategories && category.subcategories.length > 0 && dropdownPosition && (
+                    <div
+                      className="fixed z-[100] pt-[4px]"
+                      style={{
+                        top: `${dropdownPosition.top}px`,
+                        left: `${dropdownPosition.left}px`
+                      }}
+                    >
+                      <div
+                        className="bg-[#1b1b1b] border border-[rgba(255,255,255,0.05)] rounded-[8px] p-[4px] flex flex-col gap-[2px] w-auto min-w-[200px]"
+                        style={{ boxShadow: '0px 4px 24px rgba(0, 0, 0, 0.4)' }}
+                      >
+                        {category.subcategories.map((subcategory) => (
+                          <button
+                            key={subcategory.id}
+                            onClick={() => {
+                              handleCategoryClick(category.id);
+                              handleSubcategoryClick(subcategory.id);
+                            }}
+                            className="bg-[#1b1b1b] hover:bg-[rgba(255,255,255,0.05)] h-[32px] px-[8px] flex items-center rounded-[4px] text-white text-[14px] leading-[20px] text-left transition-colors whitespace-nowrap"
+                            style={{ fontFamily: 'Poppins, sans-serif' }}
+                          >
+                            {subcategory.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hidden element for positioning reference */}
+                  <div id={`cat-${category.id}`} className="absolute top-full left-0 w-0 h-0 pointer-events-none"></div>
+                </div>
+              ))}
+            </div>
+
+            {/* Right Arrow */}
+            <button
+              onClick={() => {
+                const container = document.getElementById('categories-carousel');
+                if (container) {
+                  container.scrollBy({ left: 300, behavior: 'smooth' });
+                }
+              }}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-[#1f1f1f] hover:bg-[#2a2a2a] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Mobile: Expandable Category Grid */}
+          <div className="sm:hidden">
+            {/* Collapsed view - two columns: categories | arrow */}
+            {!isCategoryExpanded && (
+              <div className="flex flex-col gap-[16px]">
+                <div className="flex gap-[6px] items-center">
+                  {/* Categories Column */}
+                  <div className="flex gap-[6px] items-center overflow-x-auto scrollbar-hide flex-1"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                  >
+                    {categories.map((category) => (
+                      <button
+                        key={category.id}
+                        id={`mobile-cat-${category.id}`}
+                        onClick={() => handleCategoryClick(category.id)}
+                        className={`h-[32px] px-[12px] py-[6px] flex items-center gap-[4px] rounded-[48px] text-[14px] leading-[20px] font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                          selectedCategoryId === category.id
+                            ? 'bg-white text-black'
+                            : 'text-[#898989]'
+                        }`}
+                        style={{ fontFamily: 'Poppins, sans-serif' }}
+                      >
+                        {category.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Arrow Column */}
+                  <button
+                    onClick={() => setIsCategoryExpanded(true)}
+                    className="flex-shrink-0 w-[32px] h-[32px] flex items-center justify-center"
+                  >
+                    <svg className="w-5 h-5 text-[#898989]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                     </svg>
-                  )}
-                </button>
+                  </button>
+                </div>
 
-                {/* Dropdown - Using fixed positioning portal-style */}
-                {hoveredCategory === category.id && selectedCategoryId !== category.id && category.subcategories && category.subcategories.length > 0 && dropdownPosition && (
-                  <div
-                    className="fixed z-[100] pt-[4px]"
-                    style={{
-                      top: `${dropdownPosition.top}px`,
-                      left: `${dropdownPosition.left}px`
-                    }}
-                  >
-                    <div
-                      className="bg-[#1b1b1b] border border-[rgba(255,255,255,0.05)] rounded-[8px] p-[4px] flex flex-col gap-[2px] w-auto min-w-[200px]"
-                      style={{ boxShadow: '0px 4px 24px rgba(0, 0, 0, 0.4)' }}
+                {/* Subcategories Row - shown when category is selected */}
+                {!isSubcategoryExpanded && selectedCategory && selectedCategory.subcategories && selectedCategory.subcategories.length > 0 && (
+                  <div className="flex gap-[6px] items-center">
+                    {/* Subcategories Column */}
+                    <div className="flex gap-[6px] items-center overflow-x-auto scrollbar-hide flex-1"
+                      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                     >
-                      {category.subcategories.map((subcategory) => (
+                      {selectedCategory.subcategories.map((subcategory) => (
                         <button
                           key={subcategory.id}
-                          onClick={() => {
-                            handleCategoryClick(category.id);
-                            handleSubcategoryClick(subcategory.id);
-                          }}
-                          className="bg-[#1b1b1b] hover:bg-[rgba(255,255,255,0.05)] h-[32px] px-[8px] flex items-center rounded-[4px] text-white text-[14px] leading-[20px] text-left transition-colors whitespace-nowrap"
+                          id={`mobile-subcat-${subcategory.id}`}
+                          onClick={() => handleSubcategoryClick(subcategory.id)}
+                          className={`h-[32px] px-[12px] py-[6px] flex items-center gap-[4px] rounded-[48px] text-[14px] leading-[20px] font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                            selectedSubcategoryId === subcategory.id
+                              ? 'bg-white text-black'
+                              : 'text-[#898989]'
+                          }`}
                           style={{ fontFamily: 'Poppins, sans-serif' }}
                         >
                           {subcategory.name}
                         </button>
                       ))}
                     </div>
+
+                    {/* Subcategory Arrow Column */}
+                    <button
+                      onClick={() => setIsSubcategoryExpanded(true)}
+                      className="flex-shrink-0 w-[32px] h-[32px] flex items-center justify-center"
+                    >
+                      <svg className="w-5 h-5 text-[#898989]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
                   </div>
                 )}
-
-                {/* Hidden element for positioning reference */}
-                <div id={`cat-${category.id}`} className="absolute top-full left-0 w-0 h-0 pointer-events-none"></div>
               </div>
-            ))}
-          </div>
+            )}
 
-          {/* Right Arrow */}
-          <button
-            onClick={() => {
-              const container = document.getElementById('categories-carousel');
-              if (container) {
-                container.scrollBy({ left: 300, behavior: 'smooth' });
-              }
-            }}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-[#1f1f1f] hover:bg-[#2a2a2a] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+            {/* Expanded view - Category Overlay */}
+            {isCategoryExpanded && (
+              <div className="absolute left-0 right-0 bg-[#141414] border border-[rgba(255,255,255,0.05)] z-50 max-h-[340px] flex flex-col"
+                style={{ boxShadow: '0px 16px 32px rgba(0, 0, 0, 0.48)' }}
+              >
+                {/* Scrollable content */}
+                <div className="overflow-y-auto px-[20px] pt-[16px] pb-[16px] flex-1">
+                  {/* Categories wrapped grid */}
+                  <div className="flex flex-wrap gap-[6px] items-center">
+                    {categories.map((category) => (
+                      <button
+                        key={category.id}
+                        onClick={() => {
+                          handleCategoryClick(category.id);
+                          setIsCategoryExpanded(false);
+                        }}
+                        className={`h-[32px] px-[12px] py-[6px] flex items-center gap-[4px] rounded-[48px] text-[14px] leading-[20px] font-medium transition-all whitespace-nowrap ${
+                          selectedCategoryId === category.id
+                            ? 'bg-white text-black'
+                            : 'text-[#898989]'
+                        }`}
+                        style={{ fontFamily: 'Poppins, sans-serif' }}
+                      >
+                        {category.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Collapse Button - Always visible at bottom */}
+                <div className="flex justify-center py-[16px] border-t border-transparent flex-shrink-0">
+                  <button
+                    onClick={() => setIsCategoryExpanded(false)}
+                    className="flex items-center gap-[4px] px-[8px] py-[8px] rounded-[40px]"
+                  >
+                    <span className="text-white text-[14px] leading-[24px] font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                      Collapse
+                    </span>
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Expanded view - Subcategory Overlay */}
+            {isSubcategoryExpanded && selectedCategory && selectedCategory.subcategories && (
+              <div className="absolute left-0 right-0 bg-[#141414] border border-[rgba(255,255,255,0.05)] z-50 max-h-[340px] flex flex-col"
+                style={{ boxShadow: '0px 16px 32px rgba(0, 0, 0, 0.48)' }}
+              >
+                {/* Scrollable content */}
+                <div className="overflow-y-auto px-[20px] pt-[16px] pb-[16px] flex-1">
+                  {/* Subcategories wrapped grid */}
+                  <div className="flex flex-wrap gap-[6px] items-center">
+                    {selectedCategory.subcategories.map((subcategory) => (
+                      <button
+                        key={subcategory.id}
+                        onClick={() => {
+                          handleSubcategoryClick(subcategory.id);
+                          setIsSubcategoryExpanded(false);
+                        }}
+                        className={`h-[32px] px-[12px] py-[6px] flex items-center gap-[4px] rounded-[48px] text-[14px] leading-[20px] font-medium transition-all whitespace-nowrap ${
+                          selectedSubcategoryId === subcategory.id
+                            ? 'bg-white text-black'
+                            : 'text-[#898989]'
+                        }`}
+                        style={{ fontFamily: 'Poppins, sans-serif' }}
+                      >
+                        {subcategory.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Collapse Button - Always visible at bottom */}
+                <div className="flex justify-center py-[16px] border-t border-transparent flex-shrink-0">
+                  <button
+                    onClick={() => setIsSubcategoryExpanded(false)}
+                    className="flex items-center gap-[4px] px-[8px] py-[8px] rounded-[40px]"
+                  >
+                    <span className="text-white text-[14px] leading-[24px] font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                      Collapse
+                    </span>
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Subcategories Row - shown when category is selected - Carousel */}
+        {/* Subcategories Row - shown when category is selected (Desktop only, mobile shows in overlay) */}
         {selectedCategory && selectedCategory.subcategories && selectedCategory.subcategories.length > 0 && (
-          <div className="relative group">
+          <div className="hidden sm:block relative group">
             {/* Left Arrow */}
             <button
               onClick={() => {
@@ -592,40 +816,76 @@ export default function Home() {
           </div>
         )}
 
-        {/* Horizontal Divider */}
+        {/* Horizontal Divider - Desktop only */}
         {selectedCategory && selectedCategory.subcategories && selectedCategory.subcategories.length > 0 && (
-          <div className="h-px bg-[rgba(217,217,217,0.08)]"></div>
+          <div className="hidden sm:block h-px bg-[rgba(217,217,217,0.08)]"></div>
         )}
 
-        {/* Tags Row - shown when subcategory is selected - Carousel */}
+        {/* Tags Row - shown when subcategory is selected */}
         {selectedSubcategoryId && availableTags.length > 0 && (
-          <div className="relative group">
-            {/* Left Arrow */}
-            <button
-              onClick={() => {
-                const container = document.getElementById('tags-carousel');
-                if (container) {
-                  container.scrollBy({ left: -300, behavior: 'smooth' });
-                }
-              }}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-[#1f1f1f] hover:bg-[#2a2a2a] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
+          <div>
+            {/* Desktop: Carousel */}
+            <div className="hidden sm:block relative group">
+              {/* Left Arrow */}
+              <button
+                onClick={() => {
+                  const container = document.getElementById('tags-carousel');
+                  if (container) {
+                    container.scrollBy({ left: -300, behavior: 'smooth' });
+                  }
+                }}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-[#1f1f1f] hover:bg-[#2a2a2a] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
 
-            {/* Tags Container */}
-            <div
-              id="tags-carousel"
-              className="flex gap-[8px] items-center overflow-x-auto scrollbar-hide scroll-smooth"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
+              {/* Tags Container */}
+              <div
+                id="tags-carousel"
+                className="flex gap-[8px] items-center overflow-x-auto scrollbar-hide scroll-smooth"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {availableTags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    onClick={() => toggleTag(tag.id)}
+                    className={`h-[28px] px-[12px] py-[8px] flex items-center gap-[2px] rounded-[36px] border transition-all whitespace-nowrap flex-shrink-0 ${
+                      selectedTagIds.includes(tag.id)
+                        ? 'bg-white text-black font-medium border-[rgba(255,255,255,0.1)]'
+                        : 'bg-[rgba(255,255,255,0.04)] text-white border-[rgba(255,255,255,0.1)]'
+                    }`}
+                    style={{ fontFamily: 'Poppins, sans-serif' }}
+                  >
+                    <p className="text-[14px] leading-[16px]">{tag.name}</p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Right Arrow */}
+              <button
+                onClick={() => {
+                  const container = document.getElementById('tags-carousel');
+                  if (container) {
+                    container.scrollBy({ left: 300, behavior: 'smooth' });
+                  }
+                }}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-[#1f1f1f] hover:bg-[#2a2a2a] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Mobile: Wrapped Grid */}
+            <div className="sm:hidden flex flex-wrap gap-[6px] items-center">
               {availableTags.map((tag) => (
                 <button
                   key={tag.id}
                   onClick={() => toggleTag(tag.id)}
-                  className={`h-[28px] px-[12px] py-[8px] flex items-center gap-[2px] rounded-[36px] border transition-all whitespace-nowrap flex-shrink-0 ${
+                  className={`h-[28px] px-[12px] py-[8px] flex items-center gap-[2px] rounded-[36px] border transition-all whitespace-nowrap ${
                     selectedTagIds.includes(tag.id)
                       ? 'bg-white text-black font-medium border-[rgba(255,255,255,0.1)]'
                       : 'bg-[rgba(255,255,255,0.04)] text-white border-[rgba(255,255,255,0.1)]'
@@ -636,21 +896,6 @@ export default function Home() {
                 </button>
               ))}
             </div>
-
-            {/* Right Arrow */}
-            <button
-              onClick={() => {
-                const container = document.getElementById('tags-carousel');
-                if (container) {
-                  container.scrollBy({ left: 300, behavior: 'smooth' });
-                }
-              }}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-[#1f1f1f] hover:bg-[#2a2a2a] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
           </div>
         )}
       </div>
@@ -1117,6 +1362,201 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {/* Filter Button - Mobile Only (Fixed at bottom) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 h-[92px] pointer-events-none z-40"
+        style={{ background: 'linear-gradient(180deg, rgba(20, 20, 20, 0) 0%, #141414 100%)' }}
+      >
+        <div className="flex justify-center items-center h-full px-[12px] pb-[24px] pointer-events-auto">
+          <button
+            onClick={() => setIsFilterModalOpen(true)}
+            className="flex items-center gap-[8px] px-[16px] pr-[12px] py-[8px] h-[44px] bg-[#1A1A1A] border border-[rgba(255,255,255,0.1)] rounded-[40px]"
+          >
+            <svg className="w-[24px] h-[24px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 6.5h14.25" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h9.75" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 17.5h9.75" />
+            </svg>
+            <span className="text-white text-[14px] leading-[24px] font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              {hasActiveFilters ? `${selectedCountries.length + selectedLanguages.length + selectedPlatforms.length} Filters` : 'Filter'}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* Filter Modal - Mobile Only */}
+      {isFilterModalOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex items-end">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black bg-opacity-50"
+            onClick={() => setIsFilterModalOpen(false)}
+          ></div>
+
+          {/* Modal Content */}
+          <div className="relative w-full bg-[#141414] rounded-t-[24px] max-h-[80vh] flex flex-col animate-slide-up">
+            {/* Header */}
+            <div className="flex items-center justify-between px-[20px] py-[16px] border-b border-[rgba(255,255,255,0.1)]">
+              <h2 className="text-white text-[20px] leading-[24px] font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>Filters</h2>
+              <button
+                onClick={() => setIsFilterModalOpen(false)}
+                className="w-[32px] h-[32px] flex items-center justify-center rounded-full hover:bg-[rgba(255,255,255,0.05)]"
+              >
+                <svg className="w-[24px] h-[24px] text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Filter Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto px-[20px] py-[24px]">
+              {/* Country Filter */}
+              <div className="flex flex-col gap-[16px] mb-[24px]">
+                <button
+                  onClick={() => setCountryExpanded(!countryExpanded)}
+                  className="flex items-center gap-[12px] w-full text-left"
+                >
+                  <p className="flex-1 text-white text-[14px] leading-[20px] font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>Select country</p>
+                  <svg
+                    className={`w-[24px] h-[24px] text-[#898989] flex-shrink-0 transition-transform ${countryExpanded ? '' : 'rotate-180'}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                  </svg>
+                </button>
+                {countryExpanded && (
+                  <div className="flex flex-col gap-[12px]">
+                    {availableCountries.map((country) => (
+                      <button
+                        key={country}
+                        onClick={() => toggleCountry(country)}
+                        className="flex items-center gap-[8px] text-left"
+                      >
+                        <div className={`w-[16px] h-[16px] border rounded-[4px] flex items-center justify-center flex-shrink-0 ${
+                          selectedCountries.includes(country)
+                            ? 'bg-white border-white'
+                            : 'border-[#898989]'
+                        }`}>
+                          {selectedCountries.includes(country) && (
+                            <svg className="w-[10px] h-[10px] text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <p className="text-[14px] text-[rgba(255,255,255,0.9)] leading-[24px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{country}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="h-px bg-[rgba(217,217,217,0.08)] mb-[24px]"></div>
+
+              {/* Language Filter */}
+              <div className="flex flex-col gap-[16px] mb-[24px]">
+                <button
+                  onClick={() => setLanguageExpanded(!languageExpanded)}
+                  className="flex items-center gap-[12px] w-full text-left"
+                >
+                  <p className="flex-1 text-white text-[14px] leading-[20px] font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>Select language</p>
+                  <svg
+                    className={`w-[24px] h-[24px] text-[#898989] flex-shrink-0 transition-transform ${languageExpanded ? '' : 'rotate-180'}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                  </svg>
+                </button>
+                {languageExpanded && (
+                  <div className="flex flex-col gap-[12px]">
+                    {availableLanguages.map((language) => (
+                      <button
+                        key={language}
+                        onClick={() => toggleLanguage(language)}
+                        className="flex items-center gap-[8px] text-left"
+                      >
+                        <div className={`w-[16px] h-[16px] border rounded-[4px] flex items-center justify-center flex-shrink-0 ${
+                          selectedLanguages.includes(language)
+                            ? 'bg-white border-white'
+                            : 'border-[#898989]'
+                        }`}>
+                          {selectedLanguages.includes(language) && (
+                            <svg className="w-[10px] h-[10px] text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <p className="text-[14px] text-[rgba(255,255,255,0.9)] leading-[24px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{language}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="h-px bg-[rgba(217,217,217,0.08)] mb-[24px]"></div>
+
+              {/* Platform Filter */}
+              <div className="flex flex-col gap-[16px]">
+                <button
+                  onClick={() => setPlatformExpanded(!platformExpanded)}
+                  className="flex items-center gap-[12px] w-full text-left"
+                >
+                  <p className="flex-1 text-white text-[14px] leading-[20px] font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>Select platform</p>
+                  <svg
+                    className={`w-[24px] h-[24px] text-[#898989] flex-shrink-0 transition-transform ${platformExpanded ? '' : 'rotate-180'}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                  </svg>
+                </button>
+                {platformExpanded && (
+                  <div className="flex flex-col gap-[12px]">
+                    {availablePlatforms.map((platform) => (
+                      <button
+                        key={platform}
+                        onClick={() => togglePlatform(platform)}
+                        className="flex items-center gap-[8px] text-left"
+                      >
+                        <div className={`w-[16px] h-[16px] border rounded-[4px] flex items-center justify-center flex-shrink-0 ${
+                          selectedPlatforms.includes(platform)
+                            ? 'bg-white border-white'
+                            : 'border-[#898989]'
+                        }`}>
+                          {selectedPlatforms.includes(platform) && (
+                            <svg className="w-[10px] h-[10px] text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <p className="text-[14px] text-[rgba(255,255,255,0.9)] leading-[24px] capitalize" style={{ fontFamily: 'Poppins, sans-serif' }}>{platform.replace('_', ' ')}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer - Apply Button */}
+            <div className="px-[20px] py-[16px] border-t border-[rgba(255,255,255,0.1)]">
+              <button
+                onClick={() => setIsFilterModalOpen(false)}
+                className="w-full h-[44px] bg-white text-black text-[14px] leading-[24px] font-medium rounded-[40px] hover:bg-[rgba(255,255,255,0.9)]"
+                style={{ fontFamily: 'Poppins, sans-serif' }}
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
