@@ -293,10 +293,10 @@ export default function Home() {
   }, [searchQuery, showSearchDropdown]);
 
   return (
-    <div className="min-h-screen bg-[#141414] px-[40px] py-[24px]">
+    <div className="min-h-screen bg-[#141414] px-[20px] sm:px-[40px] py-[24px]">
       {/* Top Bar */}
       <div className="flex items-center justify-between mb-[24px]">
-        <h1 className="text-[24px] font-medium text-white leading-normal" style={{ fontFamily: 'Poppins, sans-serif' }}>
+        <h1 className="text-[20px] sm:text-[24px] font-medium text-white leading-normal" style={{ fontFamily: 'Poppins, sans-serif' }}>
           Becometry
         </h1>
 
@@ -1142,11 +1142,11 @@ export default function Home() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-[16px]">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[8px] sm:gap-[16px]">
               {/* Row 1 - Category cards column */}
-              <div className="flex flex-col gap-[16px]">
+              <div className="flex flex-col gap-[8px] sm:gap-[16px]">
                 {/* Health Category Card */}
-                <div className="rounded-[20px] h-[161.5px] p-[16px] flex flex-col justify-between" style={{ backgroundImage: 'linear-gradient(164.171deg, rgba(0, 0, 0, 0) 16.038%, rgba(195, 31, 115, 0.49) 82.487%), linear-gradient(90deg, rgba(31, 28, 31, 0.53) 0%, rgba(31, 28, 31, 0.53) 100%)' }}>
+                <div className="rounded-[12px] sm:rounded-[20px] h-[161.5px] p-[12px] sm:p-[16px] flex flex-col justify-between" style={{ backgroundImage: 'linear-gradient(164.171deg, rgba(0, 0, 0, 0) 16.038%, rgba(195, 31, 115, 0.49) 82.487%), linear-gradient(90deg, rgba(31, 28, 31, 0.53) 0%, rgba(31, 28, 31, 0.53) 100%)' }}>
                   <p className="text-white text-[20px] font-medium leading-[24px]" style={{ fontFamily: 'Poppins, sans-serif' }}>Health</p>
                   <div className="flex flex-wrap gap-[4px]">
                     {['Functional Training', 'Calisthenics', 'Gym Training', 'HIIT Workouts'].map((tag) => (
@@ -1158,7 +1158,7 @@ export default function Home() {
                 </div>
 
                 {/* Finance Category Card */}
-                <div className="rounded-[20px] h-[161.5px] p-[16px] flex flex-col justify-between" style={{ backgroundImage: 'linear-gradient(164.171deg, rgba(0, 0, 0, 0) 16.038%, rgba(24, 63, 31, 0.49) 82.487%), linear-gradient(90deg, rgba(31, 28, 31, 0.53) 0%, rgba(31, 28, 31, 0.53) 100%)' }}>
+                <div className="rounded-[12px] sm:rounded-[20px] h-[161.5px] p-[12px] sm:p-[16px] flex flex-col justify-between" style={{ backgroundImage: 'linear-gradient(164.171deg, rgba(0, 0, 0, 0) 16.038%, rgba(24, 63, 31, 0.49) 82.487%), linear-gradient(90deg, rgba(31, 28, 31, 0.53) 0%, rgba(31, 28, 31, 0.53) 100%)' }}>
                   <p className="text-white text-[20px] font-medium leading-[24px]" style={{ fontFamily: 'Poppins, sans-serif' }}>Finance</p>
                   <div className="flex flex-wrap gap-[4px]">
                     {['Credit', 'Stock', 'Wealth Planning', 'Investing', 'Debt', 'Tax'].map((tag) => (
@@ -1174,19 +1174,19 @@ export default function Home() {
                 {filteredProfiles[0] && (
                 <Link href={`/profile/${filteredProfiles[0].id}`}>
                   <div
-                    className="relative rounded-[20px] h-[340px] p-[16px] flex flex-col justify-between overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                    className="relative rounded-[12px] sm:rounded-[20px] h-[220px] sm:h-[340px] p-[12px] sm:p-[16px] flex flex-col justify-between overflow-hidden cursor-pointer hover:scale-105 transition-transform"
                     style={{
                       backgroundImage: `linear-gradient(rgba(0,0,0,0) 56.731%, rgba(0,0,0,0.7) 100%), url(${getImageUrl(filteredProfiles[0].image_url)})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center'
                     }}
                   >
-                    <div className="bg-[rgba(255,255,255,0.11)] px-[8px] py-[8px] h-[32px] flex items-center justify-center rounded-[36px] w-fit">
-                      <p className="text-white text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[0].category_name}</p>
+                    <div className="bg-[rgba(255,255,255,0.11)] px-[6px] sm:px-[8px] py-[6px] sm:py-[8px] h-[28px] sm:h-[32px] flex items-center justify-center rounded-[36px] w-fit">
+                      <p className="text-white text-[12px] sm:text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[0].category_name}</p>
                     </div>
-                    <div className="flex flex-col gap-[8px]">
-                      <p className="text-white text-[20px] font-medium leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[0].name}</p>
-                      <p className="text-[rgba(255,255,255,0.9)] text-[14px] leading-[20px] w-[237px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[0].insight}</p>
+                    <div className="flex flex-col gap-[4px] sm:gap-[8px]">
+                      <p className="text-white text-[16px] sm:text-[20px] font-medium leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[0].name}</p>
+                      <p className="text-[rgba(255,255,255,0.9)] text-[12px] sm:text-[14px] leading-[18px] sm:leading-[20px] line-clamp-2" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[0].insight}</p>
                     </div>
                   </div>
                 </Link>
@@ -1196,19 +1196,19 @@ export default function Home() {
                 {filteredProfiles[1] && (
                 <Link href={`/profile/${filteredProfiles[1].id}`}>
                   <div
-                    className="relative rounded-[20px] h-[340px] p-[16px] flex flex-col justify-between overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                    className="relative rounded-[12px] sm:rounded-[20px] h-[180px] sm:h-[340px] p-[12px] sm:p-[16px] flex flex-col justify-between overflow-hidden cursor-pointer hover:scale-105 transition-transform"
                     style={{
                       backgroundImage: `linear-gradient(rgba(0,0,0,0) 56.731%, rgba(0,0,0,0.7) 100%), url(${getImageUrl(filteredProfiles[1].image_url)})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center'
                     }}
                   >
-                    <div className="bg-[rgba(255,255,255,0.11)] px-[8px] py-[8px] h-[32px] flex items-center justify-center rounded-[36px] w-fit">
-                      <p className="text-white text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[1].category_name}</p>
+                    <div className="bg-[rgba(255,255,255,0.11)] px-[6px] sm:px-[8px] py-[6px] sm:py-[8px] h-[28px] sm:h-[32px] flex items-center justify-center rounded-[36px] w-fit">
+                      <p className="text-white text-[12px] sm:text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[1].category_name}</p>
                     </div>
-                    <div className="flex flex-col gap-[8px]">
-                      <p className="text-white text-[20px] font-medium leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[1].name}</p>
-                      <p className="text-[rgba(255,255,255,0.9)] text-[14px] leading-[20px] w-[237px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[1].insight}</p>
+                    <div className="flex flex-col gap-[4px] sm:gap-[8px]">
+                      <p className="text-white text-[16px] sm:text-[20px] font-medium leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[1].name}</p>
+                      <p className="text-[rgba(255,255,255,0.9)] text-[12px] sm:text-[14px] leading-[18px] sm:leading-[20px] line-clamp-2" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[1].insight}</p>
                     </div>
                   </div>
                 </Link>
@@ -1218,19 +1218,19 @@ export default function Home() {
                 {filteredProfiles[2] && (
                 <Link href={`/profile/${filteredProfiles[2].id}`}>
                   <div
-                    className="relative rounded-[20px] h-[340px] p-[16px] flex flex-col justify-between overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                    className="relative rounded-[12px] sm:rounded-[20px] h-[230px] sm:h-[340px] p-[12px] sm:p-[16px] flex flex-col justify-between overflow-hidden cursor-pointer hover:scale-105 transition-transform"
                     style={{
                       backgroundImage: `linear-gradient(rgba(0,0,0,0) 56.731%, rgba(0,0,0,0.7) 100%), url(${getImageUrl(filteredProfiles[2].image_url)})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center'
                     }}
                   >
-                    <div className="bg-[rgba(255,255,255,0.11)] px-[8px] py-[8px] h-[32px] flex items-center justify-center rounded-[36px] w-fit">
-                      <p className="text-white text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[2].category_name}</p>
+                    <div className="bg-[rgba(255,255,255,0.11)] px-[6px] sm:px-[8px] py-[6px] sm:py-[8px] h-[28px] sm:h-[32px] flex items-center justify-center rounded-[36px] w-fit">
+                      <p className="text-white text-[12px] sm:text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[2].category_name}</p>
                     </div>
-                    <div className="flex flex-col gap-[8px]">
-                      <p className="text-white text-[20px] font-medium leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[2].name}</p>
-                      <p className="text-[rgba(255,255,255,0.9)] text-[14px] leading-[20px] w-[237px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[2].insight}</p>
+                    <div className="flex flex-col gap-[4px] sm:gap-[8px]">
+                      <p className="text-white text-[16px] sm:text-[20px] font-medium leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[2].name}</p>
+                      <p className="text-[rgba(255,255,255,0.9)] text-[12px] sm:text-[14px] leading-[18px] sm:leading-[20px] line-clamp-2" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[2].insight}</p>
                     </div>
                   </div>
                 </Link>
@@ -1241,19 +1241,19 @@ export default function Home() {
                 {filteredProfiles[3] && (
                 <Link href={`/profile/${filteredProfiles[3].id}`}>
                   <div
-                    className="relative rounded-[20px] h-[340px] p-[16px] flex flex-col justify-between overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                    className="relative rounded-[12px] sm:rounded-[20px] h-[160px] sm:h-[340px] p-[12px] sm:p-[16px] flex flex-col justify-between overflow-hidden cursor-pointer hover:scale-105 transition-transform"
                     style={{
                       backgroundImage: `linear-gradient(rgba(0,0,0,0) 56.731%, rgba(0,0,0,0.7) 100%), url(${getImageUrl(filteredProfiles[3].image_url)})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center'
                     }}
                   >
-                    <div className="bg-[rgba(255,255,255,0.11)] px-[8px] py-[8px] h-[32px] flex items-center justify-center rounded-[36px] w-fit">
-                      <p className="text-white text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[3].category_name}</p>
+                    <div className="bg-[rgba(255,255,255,0.11)] px-[6px] sm:px-[8px] py-[6px] sm:py-[8px] h-[28px] sm:h-[32px] flex items-center justify-center rounded-[36px] w-fit">
+                      <p className="text-white text-[12px] sm:text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[3].category_name}</p>
                     </div>
-                    <div className="flex flex-col gap-[8px]">
-                      <p className="text-white text-[20px] font-medium leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[3].name}</p>
-                      <p className="text-[rgba(255,255,255,0.9)] text-[14px] leading-[20px] w-[237px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[3].insight}</p>
+                    <div className="flex flex-col gap-[4px] sm:gap-[8px]">
+                      <p className="text-white text-[16px] sm:text-[20px] font-medium leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[3].name}</p>
+                      <p className="text-[rgba(255,255,255,0.9)] text-[12px] sm:text-[14px] leading-[18px] sm:leading-[20px] line-clamp-2" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[3].insight}</p>
                     </div>
                   </div>
                 </Link>
@@ -1263,28 +1263,28 @@ export default function Home() {
                 {filteredProfiles[4] && (
                 <Link href={`/profile/${filteredProfiles[4].id}`}>
                   <div
-                    className="relative rounded-[20px] h-[340px] p-[16px] flex flex-col justify-between overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                    className="relative rounded-[12px] sm:rounded-[20px] h-[220px] sm:h-[340px] p-[12px] sm:p-[16px] flex flex-col justify-between overflow-hidden cursor-pointer hover:scale-105 transition-transform"
                     style={{
                       backgroundImage: `linear-gradient(rgba(0,0,0,0) 56.731%, rgba(0,0,0,0.7) 100%), url(${getImageUrl(filteredProfiles[4].image_url)})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center'
                     }}
                   >
-                    <div className="bg-[rgba(255,255,255,0.11)] px-[8px] py-[8px] h-[32px] flex items-center justify-center rounded-[36px] w-fit">
-                      <p className="text-white text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[4].category_name}</p>
+                    <div className="bg-[rgba(255,255,255,0.11)] px-[6px] sm:px-[8px] py-[6px] sm:py-[8px] h-[28px] sm:h-[32px] flex items-center justify-center rounded-[36px] w-fit">
+                      <p className="text-white text-[12px] sm:text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[4].category_name}</p>
                     </div>
-                    <div className="flex flex-col gap-[8px]">
-                      <p className="text-white text-[20px] font-medium leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[4].name}</p>
-                      <p className="text-[rgba(255,255,255,0.9)] text-[14px] leading-[20px] w-[237px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[4].insight}</p>
+                    <div className="flex flex-col gap-[4px] sm:gap-[8px]">
+                      <p className="text-white text-[16px] sm:text-[20px] font-medium leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[4].name}</p>
+                      <p className="text-[rgba(255,255,255,0.9)] text-[12px] sm:text-[14px] leading-[18px] sm:leading-[20px] line-clamp-2" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[4].insight}</p>
                     </div>
                   </div>
                 </Link>
                 )}
 
                 {/* Top-100 nutrition experts card */}
-                <div className="bg-[rgba(31,28,31,0.53)] rounded-[20px] p-[16px] flex flex-col gap-[12px]">
-                  <div className="flex flex-col gap-[11px]">
-                    <p className="text-white text-[18px] font-medium leading-[24px]" style={{ fontFamily: 'Poppins, sans-serif' }}>Top-100 nutrition experts</p>
+                <div className="bg-[rgba(31,28,31,0.53)] rounded-[12px] sm:rounded-[20px] p-[12px] sm:p-[16px] flex flex-col gap-[8px] sm:gap-[12px]">
+                  <div className="flex flex-col gap-[8px] sm:gap-[11px]">
+                    <p className="text-white text-[14px] sm:text-[18px] font-medium leading-[20px] sm:leading-[24px]" style={{ fontFamily: 'Poppins, sans-serif' }}>Top-100 nutrition experts</p>
                     <div className="flex items-end gap-[8px]">
                       <div className="flex items-center flex-1">
                         <div className="w-[32px] h-[32px] rounded-full border-[1px] border-[#1b191b] -mr-[15px] overflow-hidden">
@@ -1319,19 +1319,19 @@ export default function Home() {
                 {filteredProfiles[6] && (
                 <Link href={`/profile/${filteredProfiles[6].id}`}>
                   <div
-                    className="relative rounded-[20px] h-[340px] p-[16px] flex flex-col justify-between overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                    className="relative rounded-[12px] sm:rounded-[20px] h-[180px] sm:h-[340px] p-[12px] sm:p-[16px] flex flex-col justify-between overflow-hidden cursor-pointer hover:scale-105 transition-transform"
                     style={{
                       backgroundImage: `linear-gradient(rgba(0,0,0,0) 56.731%, rgba(0,0,0,0.7) 100%), url(${getImageUrl(filteredProfiles[6].image_url)})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center'
                     }}
                   >
-                    <div className="bg-[rgba(255,255,255,0.11)] px-[8px] py-[8px] h-[32px] flex items-center justify-center rounded-[36px] w-fit">
-                      <p className="text-white text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[6].category_name}</p>
+                    <div className="bg-[rgba(255,255,255,0.11)] px-[6px] sm:px-[8px] py-[6px] sm:py-[8px] h-[28px] sm:h-[32px] flex items-center justify-center rounded-[36px] w-fit">
+                      <p className="text-white text-[12px] sm:text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[6].category_name}</p>
                     </div>
-                    <div className="flex flex-col gap-[8px]">
-                      <p className="text-white text-[20px] font-medium leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[6].name}</p>
-                      <p className="text-[rgba(255,255,255,0.9)] text-[14px] leading-[20px] w-[237px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[6].insight}</p>
+                    <div className="flex flex-col gap-[4px] sm:gap-[8px]">
+                      <p className="text-white text-[16px] sm:text-[20px] font-medium leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[6].name}</p>
+                      <p className="text-[rgba(255,255,255,0.9)] text-[12px] sm:text-[14px] leading-[18px] sm:leading-[20px] line-clamp-2" style={{ fontFamily: 'Poppins, sans-serif' }}>{filteredProfiles[6].insight}</p>
                     </div>
                   </div>
                 </Link>
@@ -1341,19 +1341,19 @@ export default function Home() {
                 {filteredProfiles.slice(7).map((profile) => (
                   <Link key={profile.id} href={`/profile/${profile.id}`}>
                     <div
-                      className="relative rounded-[20px] h-[340px] p-[16px] flex flex-col justify-between overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                      className="relative rounded-[12px] sm:rounded-[20px] h-[220px] sm:h-[340px] p-[12px] sm:p-[16px] flex flex-col justify-between overflow-hidden cursor-pointer hover:scale-105 transition-transform"
                       style={{
                         backgroundImage: `linear-gradient(rgba(0,0,0,0) 56.731%, rgba(0,0,0,0.7) 100%), url(${getImageUrl(profile.image_url)})`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center'
                       }}
                     >
-                      <div className="bg-[rgba(255,255,255,0.11)] px-[8px] py-[8px] h-[32px] flex items-center justify-center rounded-[36px] w-fit">
-                        <p className="text-white text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{profile.category_name}</p>
+                      <div className="bg-[rgba(255,255,255,0.11)] px-[6px] sm:px-[8px] py-[6px] sm:py-[8px] h-[28px] sm:h-[32px] flex items-center justify-center rounded-[36px] w-fit">
+                        <p className="text-white text-[12px] sm:text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{profile.category_name}</p>
                       </div>
-                      <div className="flex flex-col gap-[8px]">
-                        <p className="text-white text-[20px] font-medium leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{profile.name}</p>
-                        <p className="text-[rgba(255,255,255,0.9)] text-[14px] leading-[20px] w-[237px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{profile.insight}</p>
+                      <div className="flex flex-col gap-[4px] sm:gap-[8px]">
+                        <p className="text-white text-[16px] sm:text-[20px] font-medium leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>{profile.name}</p>
+                        <p className="text-[rgba(255,255,255,0.9)] text-[12px] sm:text-[14px] leading-[18px] sm:leading-[20px] line-clamp-2" style={{ fontFamily: 'Poppins, sans-serif' }}>{profile.insight}</p>
                       </div>
                     </div>
                   </Link>
