@@ -17,10 +17,13 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [searchResults, setSearchResults] = useState<ProfileCard[]>([]);
   const [youtubeVideos, setYoutubeVideos] = useState<any[]>([]);
   const [youtubeStats, setYoutubeStats] = useState({ videoCount: 0, subscriberCount: '0' });
   const [showShareTooltip, setShowShareTooltip] = useState(false);
   const [carouselScrollPosition, setCarouselScrollPosition] = useState(0);
+  const [activeCarouselDot, setActiveCarouselDot] = useState(0);
   const carouselRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -152,6 +155,80 @@ export default function ProfilePage() {
     return count;
   };
 
+  // Fetch search results when search query changes
+  useEffect(() => {
+    const fetchSearchResults = async () => {
+      if (searchQuery.trim()) {
+        try {
+          const params: any = {
+            limit: 200,
+            status: 'published',
+            search: searchQuery.trim()
+          };
+          const profilesData = await profileApi.getProfiles(params);
+          if (profilesData.success && profilesData.data) {
+            setSearchResults(profilesData.data);
+          }
+        } catch (error) {
+          console.error('Error fetching search results:', error);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      fetchSearchResults();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Update search dropdown visibility when search query changes
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      setShowSearchDropdown(true);
+    } else {
+      setShowSearchDropdown(false);
+    }
+  }, [searchQuery]);
+
+  // Handle search state across viewport changes
+  useEffect(() => {
+    const handleResize = () => {
+      const checkbox = document.getElementById('mobile-search-toggle') as HTMLInputElement;
+
+      if (window.innerWidth >= 640) { // Desktop (sm breakpoint and above)
+        // Reset mobile checkbox when switching to desktop
+        if (checkbox) checkbox.checked = false;
+      } else { // Mobile
+        // If there's an active search query or dropdown, keep mobile search open
+        if (checkbox && (searchQuery || showSearchDropdown)) {
+          checkbox.checked = true;
+        }
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [searchQuery, showSearchDropdown]);
+
+  // Track carousel scroll position for pagination dots
+  useEffect(() => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    const handleScroll = () => {
+      const scrollLeft = carousel.scrollLeft;
+      const itemWidth = 275; // 259px width + 16px gap
+      const activeIndex = Math.round(scrollLeft / itemWidth);
+      setActiveCarouselDot(activeIndex);
+    };
+
+    carousel.addEventListener('scroll', handleScroll);
+    return () => carousel.removeEventListener('scroll', handleScroll);
+  }, [youtubeVideos]);
+
   const scrollCarousel = (direction: 'left' | 'right') => {
     if (carouselRef.current) {
       const scrollAmount = 275; // 259px width + 16px gap
@@ -163,13 +240,6 @@ export default function ProfilePage() {
         left: newPosition,
         behavior: 'smooth'
       });
-    }
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/?search=${encodeURIComponent(searchQuery)}`);
     }
   };
 
@@ -211,13 +281,13 @@ export default function ProfilePage() {
   const categories = profile.category_name ? profile.category_name.split(',').map(c => c.trim()) : [];
   const subcategories = profile.subcategory_name ? profile.subcategory_name.split(',').map(s => s.trim()) : [];
 
-  // Get tags
-  const universalTags = profile.tags?.filter(tag => tag.type === 'universal') || [];
+  // Get tags - show contextual tags as the bordered tags
+  const universalTags = profile.tags?.filter(tag => tag.type === 'contextual') || [];
 
   return (
-    <div className="bg-[#141414] min-h-screen px-[40px] py-[24px] flex flex-col gap-[80px]">
+    <div className="bg-[#141414] min-h-screen px-[20px] sm:px-[40px] py-[16px] sm:py-[24px] flex flex-col gap-[80px]">
       {/* Header */}
-      <div className="flex flex-col gap-[24px] w-full">
+      <div className="flex flex-col gap-[12px] sm:gap-[24px] w-full">
         <div className="flex items-center justify-between w-full">
           <Link href="/">
             <p className="text-[24px] font-medium text-white leading-normal cursor-pointer hover:opacity-80 transition-opacity" style={{ fontFamily: 'Poppins, sans-serif' }}>
@@ -225,21 +295,214 @@ export default function ProfilePage() {
             </p>
           </Link>
 
-          {/* Search */}
-          <form onSubmit={handleSearch} className="flex items-center gap-[8px] pl-[4px] pr-[8px] py-[8px] border-b border-white">
-            <svg className="w-[24px] h-[24px] text-[#898989]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+          {/* Search - CSS-only mobile expand */}
+          <div className="relative">
+            {/* Mobile icon-only trigger */}
+            <label htmlFor="mobile-search-toggle" className="
+              /* Mobile: show icon only */
+              sm:hidden
+              w-10
+              h-10
+              flex
+              items-center
+              justify-center
+              cursor-pointer
+              hover:bg-[#1f1f1f]
+              rounded-lg
+              transition-colors
+            ">
+              <svg className="w-5 h-5 text-[#898989]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </label>
+
+            {/* Hidden checkbox to control expand state */}
             <input
-              type="text"
-              placeholder="Search experts by category or name "
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent text-white text-[14px] placeholder-[#898989] outline-none w-[270px] leading-[24px]"
-              style={{ fontFamily: 'Poppins, sans-serif' }}
+              type="checkbox"
+              id="mobile-search-toggle"
+              className="hidden peer"
             />
-          </form>
+
+            {/* DESKTOP search bar - always visible on desktop */}
+            <div className="
+              /* Desktop: always show */
+              hidden
+              sm:flex
+              items-center
+              gap-[8px]
+              pl-[4px]
+              pr-[8px]
+              py-[8px]
+              border-b
+              border-white
+              w-[304px]
+            ">
+              <svg className="w-[24px] h-[24px] text-[#898989]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search experts by category or name "
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => searchQuery && setShowSearchDropdown(true)}
+                className="bg-transparent text-white text-[14px] placeholder-[#898989] outline-none focus-visible:ring-0 focus-visible:ring-offset-0 leading-[24px] flex-1"
+                style={{ fontFamily: 'Poppins, sans-serif' }}
+              />
+              {searchQuery && (
+                <button onClick={() => {setSearchQuery(''); setShowSearchDropdown(false);}} className="text-white">
+                  <svg className="w-[24px] h-[24px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* MOBILE expanded search bar - hidden by default, shown when checkbox is checked */}
+            <div className="
+              /* Hidden by default */
+              hidden
+
+              /* Show when checkbox is checked on mobile */
+              peer-checked:flex
+              peer-checked:fixed
+              peer-checked:top-0
+              peer-checked:left-0
+              peer-checked:right-0
+              peer-checked:bg-[#141414]
+              peer-checked:p-4
+              peer-checked:z-50
+              peer-checked:items-center
+              peer-checked:gap-2
+
+              /* Hide on desktop */
+              sm:hidden
+            ">
+              {/* Your exact search bar styles preserved */}
+              <div className="flex items-center gap-[8px] pl-[4px] pr-[8px] py-[8px] border-b border-white w-full">
+                <svg className="w-[24px] h-[24px] text-[#898989]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search experts by category or name "
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => searchQuery && setShowSearchDropdown(true)}
+                  className="bg-transparent text-white text-[14px] placeholder-[#898989] outline-none focus-visible:ring-0 focus-visible:ring-offset-0 leading-[24px] flex-1"
+                  style={{ fontFamily: 'Poppins, sans-serif' }}
+                  id="mobile-search-input"
+                />
+                {searchQuery && (
+                  <button onClick={() => {setSearchQuery(''); setShowSearchDropdown(false);}} className="text-white">
+                    <svg className="w-[24px] h-[24px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              {/* Cancel button for mobile */}
+              <label
+                htmlFor="mobile-search-toggle"
+                className="
+                  text-white
+                  px-3
+                  py-2
+                  cursor-pointer
+                "
+              >
+                Cancel
+              </label>
+            </div>
+
+            {/* Search Dropdown - Desktop: dropdown, Mobile: full screen */}
+            {showSearchDropdown && searchQuery && (
+              <div className="
+                /* Mobile: Full screen */
+                fixed
+                top-[72px]
+                left-0
+                right-0
+                bottom-0
+                bg-[#141414]
+                z-40
+                overflow-y-auto
+                p-[8px]
+                py-[4px]
+
+                /* Desktop: Dropdown */
+                sm:absolute
+                sm:right-0
+                sm:top-[48px]
+                sm:left-auto
+                sm:bottom-auto
+                sm:w-[304px]
+                sm:bg-[#1b1b1b]
+                sm:border
+                sm:border-[rgba(255,255,255,0.05)]
+                sm:rounded-[8px]
+                sm:overflow-hidden
+
+                /* Show on desktop always, on mobile only when expanded */
+                hidden
+                peer-checked:block
+                sm:block
+              " style={{ boxShadow: '0px 4px 24px rgba(0, 0, 0, 0.4)' }}>
+                {searchResults.length > 0 ? (
+                  <div className="flex flex-col gap-[2px]">
+                    {searchResults.map((profile, index) => (
+                      <Link
+                        key={profile.id}
+                        href={`/profile/${profile.id}`}
+                        className={`flex items-center gap-[8px] pl-[4px] pr-[8px] py-[4px] rounded-[4px] cursor-pointer transition-colors ${index === 1 ? 'bg-[#252525]' : 'hover:bg-[#252525]'}`}
+                        onClick={() => {
+                          setSearchQuery('');
+                          setShowSearchDropdown(false);
+                          const checkbox = document.getElementById('mobile-search-toggle') as HTMLInputElement;
+                          if (checkbox) checkbox.checked = false;
+                        }}
+                      >
+                        <div className="w-[32px] h-[32px] rounded-[4px] overflow-hidden flex-shrink-0">
+                          <img src={getImageUrl(profile.image_url)} alt={profile.name} className="w-full h-full object-cover" />
+                        </div>
+                        <p className="text-white text-[14px] leading-[20px] flex-1 truncate" style={{ fontFamily: 'Poppins, sans-serif' }}>{profile.name}</p>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-[20px] text-center">
+                    <p className="text-[rgba(255,255,255,0.6)] text-[14px]" style={{ fontFamily: 'Poppins, sans-serif' }}>No matching results.</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Breadcrumb Navigation - Mobile Only */}
+        <div className="flex sm:hidden items-center gap-[8px]">
+          <button
+            onClick={() => router.push('/')}
+            className="flex items-center justify-center w-[24px] h-[24px]"
+          >
+            <svg className="w-[16px] h-[16px] text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <Link href="/" className="text-[14px] text-[#c2c1c1] leading-[20px] hover:text-white transition-colors" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            Main page
+          </Link>
+          <span className="text-[14px] text-[#c2c1c1] leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            /
+          </span>
+          <p className="text-[14px] text-white leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            {profile.name}
+          </p>
+        </div>
+
+        {/* Horizontal Divider - Mobile Only */}
+        <div className="sm:hidden w-full h-[1px] bg-[rgba(255,255,255,0.1)]"></div>
 
         {/* Profile Header */}
         <div className="flex flex-col gap-[64px] items-center justify-center w-full">
@@ -247,7 +510,7 @@ export default function ProfilePage() {
           <div className="flex flex-col gap-[20px] items-center">
             {/* Avatar */}
             <div className="flex flex-col gap-[12px] items-center w-full">
-              <div className="relative w-[80px] h-[80px] rounded-full overflow-hidden">
+              <div className="relative w-[56px] h-[56px] sm:w-[80px] sm:h-[80px] rounded-full overflow-hidden">
                 <img
                   src={getImageUrl(profile.image_url)}
                   alt={profile.name}
@@ -257,8 +520,8 @@ export default function ProfilePage() {
 
               {/* Name and Share Button */}
               <div className="flex flex-col gap-[8px] items-center w-full">
-                <div className="flex gap-[8px] items-start justify-center w-full">
-                  <p className="text-[24px] font-medium text-white leading-[32px] text-center" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                <div className="flex gap-[8px] items-center justify-center w-full">
+                  <p className="text-[18px] sm:text-[24px] font-medium text-white leading-[24px] sm:leading-[32px] text-center" style={{ fontFamily: 'Poppins, sans-serif' }}>
                     {profile.name}
                   </p>
                   <div className="relative">
@@ -300,12 +563,12 @@ export default function ProfilePage() {
 
             {/* Categories and Subcategories */}
             <div className="flex flex-col gap-[12px] items-center">
-              <div className="flex gap-[8px] items-center">
+              <div className="flex flex-col gap-[8px] items-center justify-center">
                 {/* First Category Path */}
                 {categories[0] && (
-                  <>
-                    <div className="bg-[rgba(255,255,255,0.11)] h-[32px] px-[8px] py-[8px] rounded-[36px] flex items-center justify-center">
-                      <p className="text-white text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                  <div className="flex gap-[8px] items-center">
+                    <div className="bg-[rgba(255,255,255,0.11)] px-[6px] py-[2px] rounded-[36px] flex items-center justify-center" style={{ boxShadow: 'none', border: 'none' }}>
+                      <p className="text-white text-[12px] leading-[16px]" style={{ fontFamily: 'Inter, sans-serif' }}>
                         {categories[0]}
                       </p>
                     </div>
@@ -314,26 +577,21 @@ export default function ProfilePage() {
                         <svg className="w-[16px] h-[16px] text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                        <div className="bg-[rgba(255,255,255,0.11)] h-[32px] px-[8px] py-[8px] rounded-[36px] flex items-center justify-center">
-                          <p className="text-white text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                        <div className="bg-[rgba(255,255,255,0.11)] px-[6px] py-[2px] rounded-[36px] flex items-center justify-center" style={{ boxShadow: 'none', border: 'none' }}>
+                          <p className="text-white text-[12px] leading-[16px]" style={{ fontFamily: 'Inter, sans-serif' }}>
                             {subcategories[0]}
                           </p>
                         </div>
                       </>
                     )}
-                  </>
-                )}
-
-                {/* Divider if there's a second category */}
-                {categories[1] && (
-                  <div className="h-[24px] w-[1px] bg-[rgba(255,255,255,0.1)]"></div>
+                  </div>
                 )}
 
                 {/* Second Category Path */}
                 {categories[1] && (
-                  <>
-                    <div className="bg-[rgba(255,255,255,0.11)] h-[32px] px-[8px] py-[8px] rounded-[36px] flex items-center justify-center">
-                      <p className="text-white text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                  <div className="flex gap-[8px] items-center">
+                    <div className="bg-[rgba(255,255,255,0.11)] px-[6px] py-[2px] rounded-[36px] flex items-center justify-center" style={{ boxShadow: 'none', border: 'none' }}>
+                      <p className="text-white text-[12px] leading-[16px]" style={{ fontFamily: 'Inter, sans-serif' }}>
                         {categories[1]}
                       </p>
                     </div>
@@ -342,22 +600,22 @@ export default function ProfilePage() {
                         <svg className="w-[16px] h-[16px] text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                        <div className="bg-[rgba(255,255,255,0.11)] h-[32px] px-[8px] py-[8px] rounded-[36px] flex items-center justify-center">
-                          <p className="text-white text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                        <div className="bg-[rgba(255,255,255,0.11)] px-[6px] py-[2px] rounded-[36px] flex items-center justify-center" style={{ boxShadow: 'none', border: 'none' }}>
+                          <p className="text-white text-[12px] leading-[16px]" style={{ fontFamily: 'Inter, sans-serif' }}>
                             {subcategories[1]}
                           </p>
                         </div>
                       </>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
 
               {/* Universal Tags */}
               {universalTags.length > 0 && (
-                <div className="flex gap-[8px] items-start justify-center">
+                <div className="flex flex-wrap gap-[8px] items-start justify-center w-full">
                   {universalTags.map((tag) => (
-                    <div key={tag.id} className="border border-[rgba(255,255,255,0.1)] h-[24px] px-[8px] py-[8px] rounded-[36px] flex items-center justify-center">
+                    <div key={tag.id} className="border border-[rgba(255,255,255,0.1)] px-[8px] py-[8px] h-[24px] rounded-[36px] flex items-center justify-center whitespace-nowrap">
                       <p className="text-white text-[12px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>
                         {tag.name}
                       </p>
@@ -368,16 +626,16 @@ export default function ProfilePage() {
             </div>
 
             {/* Social Media Icons */}
-            <div className="flex flex-wrap gap-[12px] items-center justify-center w-[600px]">
+            <div className="flex flex-wrap gap-[12px] items-center justify-center w-full">
               {/* Instagram */}
               {getSocialLink('instagram') !== '#' && (
                 <a
                   href={getSocialLink('instagram')}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-[32px] h-[32px] rounded-[40px] flex items-center justify-center hover:bg-[rgba(255,255,255,0.1)] transition-colors"
+                  className="w-[24px] h-[24px] sm:w-[32px] sm:h-[32px] rounded-[40px] flex items-center justify-center hover:bg-[rgba(255,255,255,0.1)] transition-colors"
                 >
-                  <svg className="w-[16px] h-[16px] text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-[12px] h-[12px] sm:w-[16px] sm:h-[16px] text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
                   </svg>
                 </a>
@@ -389,9 +647,9 @@ export default function ProfilePage() {
                   href={getSocialLink('facebook')}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-[32px] h-[32px] rounded-[40px] flex items-center justify-center hover:bg-[rgba(255,255,255,0.1)] transition-colors"
+                  className="w-[24px] h-[24px] sm:w-[32px] sm:h-[32px] rounded-[40px] flex items-center justify-center hover:bg-[rgba(255,255,255,0.1)] transition-colors"
                 >
-                  <svg className="w-[16px] h-[16px] text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-[12px] h-[12px] sm:w-[16px] sm:h-[16px] text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                   </svg>
                 </a>
@@ -403,9 +661,9 @@ export default function ProfilePage() {
                   href={getSocialLink('tiktok')}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-[32px] h-[32px] rounded-[40px] flex items-center justify-center hover:bg-[rgba(255,255,255,0.1)] transition-colors"
+                  className="w-[24px] h-[24px] sm:w-[32px] sm:h-[32px] rounded-[40px] flex items-center justify-center hover:bg-[rgba(255,255,255,0.1)] transition-colors"
                 >
-                  <svg className="w-[16px] h-[16px] text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-[12px] h-[12px] sm:w-[16px] sm:h-[16px] text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
                   </svg>
                 </a>
@@ -417,9 +675,9 @@ export default function ProfilePage() {
                   href={getSocialLink('linkedin')}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-[32px] h-[32px] rounded-[40px] flex items-center justify-center hover:bg-[rgba(255,255,255,0.1)] transition-colors"
+                  className="w-[24px] h-[24px] sm:w-[32px] sm:h-[32px] rounded-[40px] flex items-center justify-center hover:bg-[rgba(255,255,255,0.1)] transition-colors"
                 >
-                  <svg className="w-[16px] h-[16px] text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-[12px] h-[12px] sm:w-[16px] sm:h-[16px] text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
                   </svg>
                 </a>
@@ -469,7 +727,7 @@ export default function ProfilePage() {
                   </p>
                 </a>
               </div>
-              <div className="flex gap-[8px] items-center">
+              <div className="hidden sm:flex gap-[8px] items-center">
                 <button
                   onClick={() => scrollCarousel('left')}
                   className="bg-[#1b1b1b] border border-[rgba(255,255,255,0.05)] w-[48px] h-[48px] rounded-[40px] flex items-center justify-center"
@@ -490,31 +748,58 @@ export default function ProfilePage() {
             </div>
 
             {/* Video Carousel */}
-            <div ref={carouselRef} className="flex gap-[16px] items-center overflow-x-auto overflow-y-hidden w-full relative scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              {youtubeVideos.length > 0 ? (
-                youtubeVideos.map((video) => (
-                  <div key={video.id.videoId} className="relative w-[259px] h-[327px] rounded-[20px] overflow-hidden flex-shrink-0">
-                    <iframe
-                      src={`https://www.youtube.com/embed/${video.id.videoId}`}
-                      className="w-full h-full rounded-[20px]"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                ))
-              ) : (
-                [1, 2, 3, 4, 5, 6, 7, 8].map((_, index) => (
-                  <div key={index} className="relative w-[259px] h-[327px] rounded-[20px] overflow-hidden flex-shrink-0 bg-[#1b1b1b]">
-                    <div className="flex items-center justify-center w-full h-full text-[#dfdfdf] text-[14px]">
-                      Loading videos...
+            <div className="relative w-full">
+              <div ref={carouselRef} className="flex gap-[16px] items-center overflow-x-auto overflow-y-hidden w-full scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                {youtubeVideos.length > 0 ? (
+                  youtubeVideos.map((video) => (
+                    <div key={video.id.videoId} className="relative w-[259px] h-[327px] rounded-[20px] overflow-hidden flex-shrink-0">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${video.id.videoId}`}
+                        className="w-full h-full rounded-[20px]"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
                     </div>
-                  </div>
-                ))
-              )}
+                  ))
+                ) : (
+                  [1, 2, 3, 4, 5, 6, 7, 8].map((_, index) => (
+                    <div key={index} className="relative w-[259px] h-[327px] rounded-[20px] overflow-hidden flex-shrink-0 bg-[#1b1b1b]">
+                      <div className="flex items-center justify-center w-full h-full text-[#dfdfdf] text-[14px]">
+                        Loading videos...
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
 
-              {/* Gradient Overlay */}
+              {/* Gradient Overlay - Fixed position */}
               <div className="absolute right-0 top-0 w-[118px] h-[327px] bg-gradient-to-r from-[rgba(20,20,20,0)] to-[#141414] pointer-events-none"></div>
             </div>
+
+            {/* Pagination Dots - Mobile Only */}
+            {youtubeVideos.length > 0 && (
+              <div className="flex sm:hidden gap-[8px] items-center justify-center w-full">
+                {youtubeVideos.slice(0, Math.min(youtubeVideos.length, 5)).map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      if (carouselRef.current) {
+                        const scrollAmount = 275 * index; // 259px width + 16px gap
+                        carouselRef.current.scrollTo({
+                          left: scrollAmount,
+                          behavior: 'smooth'
+                        });
+                      }
+                    }}
+                    className={`rounded-full transition-all cursor-pointer ${
+                      (index === activeCarouselDot || (index === 4 && activeCarouselDot >= 4))
+                        ? 'w-[12px] h-[12px] bg-white'
+                        : 'w-[8px] h-[8px] bg-[rgba(255,255,255,0.4)]'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           )}
 
@@ -532,7 +817,7 @@ export default function ProfilePage() {
                 <p className="text-[24px] font-medium text-white leading-[32px] flex-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
                   Find more experts in {categories[0] || 'this category'}
                 </p>
-                <div className="flex gap-[8px] items-center">
+                <div className="hidden sm:flex gap-[8px] items-center">
                   <button className="bg-[#1b1b1b] border border-[rgba(255,255,255,0.05)] w-[48px] h-[48px] rounded-[40px] flex items-center justify-center">
                     <svg className="w-[24px] h-[24px] text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -546,40 +831,94 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Related Profiles Carousel */}
-              <div className="flex gap-[16px] items-center overflow-hidden w-full relative">
-                {relatedProfiles.map((relatedProfile) => (
-                  <Link
-                    key={relatedProfile.id}
-                    href={`/profile/${relatedProfile.id}`}
-                    className="relative w-[269px] h-[340px] rounded-[20px] overflow-hidden flex-shrink-0 p-[16px] flex flex-col justify-between hover:scale-105 transition-transform cursor-pointer"
-                  >
-                    <img
-                      src={getImageUrl(relatedProfile.image_url)}
-                      alt={relatedProfile.name}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-[rgba(0,0,0,0)] via-[rgba(0,0,0,0)] to-[rgba(0,0,0,0.7)]"></div>
+              {/* Related Profiles - Masonry on Mobile, Carousel on Desktop */}
+              <div className="w-full">
+                {/* Mobile: Masonry Layout - Same as home page */}
+                <div className="sm:hidden columns-2" style={{ columnGap: '20px' }}>
+                  {relatedProfiles.map((relatedProfile, index) => {
+                    // Pattern from Figma: index 1 and index 8 are small (160px), rest are large (230px)
+                    const isSmall = index % 7 === 1;
+                    const mobileHeight = isSmall ? 'h-[160px]' : 'h-[230px]';
+                    const mobilePadding = isSmall ? 'p-[8px]' : 'px-[8px] py-[12px]';
+                    const nameSize = isSmall ? 'text-[12px]' : 'text-[14px]';
+                    const descSize = isSmall ? 'text-[10px]' : 'text-[12px]';
+                    const nameLineHeight = isSmall ? 'leading-[16px]' : 'leading-[20px]';
 
-                    <div className="bg-[rgba(255,255,255,0.11)] h-[32px] px-[8px] py-[8px] rounded-[36px] flex items-center justify-center w-fit relative z-10">
-                      <p className="text-white text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                        {relatedProfile.category_name}
-                      </p>
-                    </div>
+                    return (
+                      <div key={relatedProfile.id} className="break-inside-avoid mb-[20px]">
+                        <Link href={`/profile/${relatedProfile.id}`}>
+                          <div className={`relative rounded-[16px] ${mobileHeight} ${mobilePadding} flex flex-col justify-between overflow-hidden cursor-pointer hover:scale-105 transition-transform`}>
+                            <div
+                              className="absolute inset-0 rounded-[16px]"
+                              style={{
+                                backgroundImage: `url(${getImageUrl(relatedProfile.image_url)})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center'
+                              }}
+                            />
+                            <div
+                              className="absolute inset-0 rounded-[16px]"
+                              style={{
+                                backgroundImage: isSmall
+                                  ? 'linear-gradient(2.4859e-06deg, rgba(0, 0, 0, 0) 74.783%, rgba(0, 0, 0, 0.45) 100%), linear-gradient(rgba(0, 0, 0, 0) 56.731%, rgba(0, 0, 0, 0.7) 100%)'
+                                  : 'linear-gradient(3.57348e-06deg, rgba(0, 0, 0, 0) 74.783%, rgba(0, 0, 0, 0.45) 100%), linear-gradient(rgba(0, 0, 0, 0) 56.731%, rgba(0, 0, 0, 0.7) 100%)'
+                              }}
+                            />
+                            <div className="bg-[rgba(255,255,255,0.11)] px-[6px] py-[2px] flex items-center justify-center rounded-[36px] w-fit relative z-10">
+                              <p className="text-white text-[12px] leading-[16px]" style={{ fontFamily: 'Inter, sans-serif' }}>
+                                {relatedProfile.category_name}
+                              </p>
+                            </div>
+                            <div className="flex flex-col gap-[2px] relative z-10">
+                              <p className={`text-white ${nameSize} font-medium ${nameLineHeight}`} style={{ fontFamily: 'Poppins, sans-serif' }}>
+                                {relatedProfile.name}
+                              </p>
+                              <p className={`text-[rgba(255,255,255,0.9)] ${descSize} leading-[16px] w-[148px] overflow-ellipsis overflow-hidden`} style={{ fontFamily: 'Poppins, sans-serif', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                {relatedProfile.insight}
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
 
-                    <div className="flex flex-col gap-[8px] relative z-10">
-                      <p className="text-white text-[20px] font-medium leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                        {relatedProfile.name}
-                      </p>
-                      <p className="text-[rgba(255,255,255,0.9)] text-[14px] leading-[20px] w-[237px]" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                        {relatedProfile.insight}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
+                {/* Desktop: Carousel Layout */}
+                <div className="hidden sm:flex gap-[16px] items-center overflow-hidden w-full relative">
+                  {relatedProfiles.map((relatedProfile) => (
+                    <Link
+                      key={relatedProfile.id}
+                      href={`/profile/${relatedProfile.id}`}
+                      className="relative w-[269px] h-[340px] rounded-[20px] overflow-hidden flex-shrink-0 p-[16px] flex flex-col justify-between hover:scale-105 transition-transform cursor-pointer"
+                    >
+                      <img
+                        src={getImageUrl(relatedProfile.image_url)}
+                        alt={relatedProfile.name}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-b from-[rgba(0,0,0,0)] via-[rgba(0,0,0,0)] to-[rgba(0,0,0,0.7)]"></div>
 
-                {/* Gradient Overlay */}
-                <div className="absolute right-0 top-0 w-[152px] h-[340px] bg-gradient-to-r from-[rgba(20,20,20,0)] to-[#141414] pointer-events-none"></div>
+                      <div className="bg-[rgba(255,255,255,0.11)] h-[32px] px-[8px] py-[8px] rounded-[36px] flex items-center justify-center w-fit relative z-10">
+                        <p className="text-white text-[14px] leading-[16px]" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                          {relatedProfile.category_name}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col gap-[8px] relative z-10">
+                        <p className="text-white text-[20px] font-medium leading-[20px]" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                          {relatedProfile.name}
+                        </p>
+                        <p className="text-[rgba(255,255,255,0.9)] text-[14px] leading-[20px] w-[237px]" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                          {relatedProfile.insight}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+
+                  {/* Gradient Overlay - Desktop Only */}
+                  <div className="absolute right-0 top-0 w-[152px] h-[340px] bg-gradient-to-r from-[rgba(20,20,20,0)] to-[#141414] pointer-events-none"></div>
+                </div>
               </div>
             </div>
           )}
