@@ -3,12 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 
 export default function Navigation() {
   const pathname = usePathname();
-  const { user, isAuthenticated, logout } = useAuth();
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const isActive = (path: string) => {
@@ -39,62 +36,6 @@ export default function Navigation() {
             >
               Home
             </Link>
-            <Link
-              href="/explore"
-              className={`text-sm font-semibold transition-colors ${
-                isActive('/explore')
-                  ? 'text-accent-purple'
-                  : 'text-dark-400 hover:text-dark-200'
-              }`}
-            >
-              Explore
-            </Link>
-
-            <Link
-              href="/shorts"
-              className={`text-sm font-semibold transition-colors ${
-                isActive('/shorts')
-                  ? 'text-accent-purple'
-                  : 'text-dark-400 hover:text-dark-200'
-              }`}
-            >
-              Videos
-            </Link>
-
-            {isAuthenticated && (
-              <Link
-                href="/favorites"
-                className={`text-sm font-semibold transition-colors ${
-                  isActive('/favorites')
-                    ? 'text-accent-purple'
-                    : 'text-dark-400 hover:text-dark-200'
-                }`}
-              >
-                Favorites
-              </Link>
-            )}
-
-            <Link
-              href="/about"
-              className={`text-sm font-semibold transition-colors ${
-                isActive('/about')
-                  ? 'text-accent-purple'
-                  : 'text-dark-400 hover:text-dark-200'
-              }`}
-            >
-              About
-            </Link>
-
-            <Link
-              href="/faq"
-              className={`text-sm font-semibold transition-colors ${
-                isActive('/faq')
-                  ? 'text-accent-purple'
-                  : 'text-dark-400 hover:text-dark-200'
-              }`}
-            >
-              FAQ
-            </Link>
 
             <Link
               href="/apply"
@@ -102,61 +43,6 @@ export default function Navigation() {
             >
               Apply
             </Link>
-
-            {/* Show Login/Register or User Menu */}
-            {isAuthenticated && user ? (
-              <div className="relative">
-                <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 px-4 py-2 glass-effect border border-dark-700 rounded-xl hover:bg-dark-800 transition-all"
-                >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-purple to-accent-blue flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">{user.name.charAt(0).toUpperCase()}</span>
-                  </div>
-                  <span className="text-dark-200 text-sm font-semibold hidden sm:block">{user.name}</span>
-                  <svg className="w-4 h-4 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {/* Dropdown Menu */}
-                {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 glass-effect border border-dark-700 rounded-xl shadow-lg overflow-hidden">
-                    <Link
-                      href="/favorites"
-                      onClick={() => setShowUserMenu(false)}
-                      className="block px-4 py-3 text-dark-300 hover:bg-dark-800 hover:text-accent-purple transition-colors"
-                    >
-                      My Favorites
-                    </Link>
-                    <button
-                      onClick={() => {
-                        logout();
-                        setShowUserMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-3 text-dark-300 hover:bg-dark-800 hover:text-red-400 transition-colors"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="text-sm font-semibold text-dark-400 hover:text-dark-200 transition-colors"
-                >
-                  Login
-                </Link>
-                <Link
-                  href="/register"
-                  className="px-6 py-2 bg-gradient-to-r from-accent-purple to-accent-blue text-white rounded-xl font-semibold hover:shadow-glow transition-all text-sm"
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -187,78 +73,12 @@ export default function Navigation() {
               Home
             </Link>
             <Link
-              href="/explore"
-              onClick={() => setShowMobileMenu(false)}
-              className={`block px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-                isActive('/explore') ? 'bg-accent-purple/20 text-accent-purple' : 'text-dark-400 hover:bg-dark-800'
-              }`}
-            >
-              Explore
-            </Link>
-            <Link
-              href="/shorts"
-              onClick={() => setShowMobileMenu(false)}
-              className={`block px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-                isActive('/shorts') ? 'bg-accent-purple/20 text-accent-purple' : 'text-dark-400 hover:bg-dark-800'
-              }`}
-            >
-              Videos
-            </Link>
-            {isAuthenticated && (
-              <Link
-                href="/favorites"
-                onClick={() => setShowMobileMenu(false)}
-                className={`block px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-                  isActive('/favorites') ? 'bg-accent-purple/20 text-accent-purple' : 'text-dark-400 hover:bg-dark-800'
-                }`}
-              >
-                Favorites
-              </Link>
-            )}
-            <Link
-              href="/about"
-              onClick={() => setShowMobileMenu(false)}
-              className={`block px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-                isActive('/about') ? 'bg-accent-purple/20 text-accent-purple' : 'text-dark-400 hover:bg-dark-800'
-              }`}
-            >
-              About
-            </Link>
-            <Link
-              href="/faq"
-              onClick={() => setShowMobileMenu(false)}
-              className={`block px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-                isActive('/faq') ? 'bg-accent-purple/20 text-accent-purple' : 'text-dark-400 hover:bg-dark-800'
-              }`}
-            >
-              FAQ
-            </Link>
-            <Link
               href="/apply"
               onClick={() => setShowMobileMenu(false)}
               className="block px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-accent-purple to-accent-blue text-white hover:shadow-glow transition-all text-center"
             >
               Apply
             </Link>
-
-            {!isAuthenticated && (
-              <div className="pt-2 border-t border-dark-800 space-y-2">
-                <Link
-                  href="/login"
-                  onClick={() => setShowMobileMenu(false)}
-                  className="block px-4 py-2 rounded-xl text-sm font-semibold text-dark-400 hover:bg-dark-800 transition-colors text-center"
-                >
-                  Login
-                </Link>
-                <Link
-                  href="/register"
-                  onClick={() => setShowMobileMenu(false)}
-                  className="block px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-accent-purple to-accent-blue text-white hover:shadow-glow transition-all text-center"
-                >
-                  Sign Up
-                </Link>
-              </div>
-            )}
           </div>
         )}
       </div>

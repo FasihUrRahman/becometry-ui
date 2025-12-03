@@ -41,7 +41,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#141414] flex">
       {/* Sidebar */}
-      <div className="w-[260px] bg-[rgba(31,28,31,0.53)] border-r border-[rgba(255,255,255,0.08)] flex flex-col">
+      <div className="w-[260px] h-screen sticky top-0 bg-[rgba(31,28,31,0.53)] border-r border-[rgba(255,255,255,0.08)] flex flex-col">
         {/* Logo/Title */}
         <div className="p-6 border-b border-[rgba(255,255,255,0.08)]">
           <h1 className="text-[24px] font-bold text-white" style={{ fontFamily: 'Poppins, sans-serif' }}>

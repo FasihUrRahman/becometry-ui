@@ -35,7 +35,7 @@ const generateImagePositions = (count: number, images: string[]) => {
 export default function Preloader({ onComplete }: { onComplete: () => void }) {
   const [slide, setSlide] = useState(1);
   const [fadeOut, setFadeOut] = useState(false);
-  const [imagePositions, setImagePositions] = useState<Array<{top: number, left: number, delay: number, image: string}>>([]);
+  const [imagePositions, setImagePositions] = useState<Array<{initialTop: number, initialLeft: number, top: number, left: number, delay: number, image: string}>>([]);
   const [mounted, setMounted] = useState(false);
   const [profileImages, setProfileImages] = useState<string[]>([]);
 
